@@ -21,7 +21,6 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     if (!email && !phoneNumber) {
         return res.status(400).json({ error: 'email or phoneNumber required' });
     }
-    // STEP 1: Fetch contacts matching email OR phoneNumber
     const matchedContacts = yield prisma.contact.findMany({
         where: {
             OR: [
@@ -31,8 +30,8 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         },
         orderBy: { createdAt: 'asc' }
     });
-    console.log(matchedContacts, "MATCHINg");
-    // STEP 2: No match? Create new primary
+    console.log(matchedContacts, "MATCHING CONTACTS");
+    //Create new primary
     if (matchedContacts.length === 0) {
         const newContact = yield prisma.contact.create({
             data: {
@@ -50,7 +49,7 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             },
         });
     }
-    // STEP 3: Gather all related contacts (by linkedId or id)
+    // STEP 3: Gather all related contacts-by linkedId or id
     const relatedIds = new Set();
     for (const contact of matchedContacts) {
         if (contact.linkPrecedence === 'primary') {
@@ -69,13 +68,13 @@ router.post('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         },
         orderBy: { createdAt: 'asc' },
     });
-    // STEP 4: Determine primary contact
+    // Find primary contact
     const primary = allContacts.find((c) => c.linkPrecedence === 'primary');
     const secondaryContacts = allContacts.filter((c) => c.id !== primary.id);
     const emails = Array.from(new Set(allContacts.map((c) => c.email).filter(Boolean)));
     const phoneNumbers = Array.from(new Set(allContacts.map((c) => c.phoneNumber).filter(Boolean)));
     const secondaryContactIds = secondaryContacts.map((c) => c.id);
-    // STEP 5: Check if this email/phone combo exists, if not, create new secondary
+    // Check if this email/phone combo exists, if not, create new secondary
     const alreadyExists = allContacts.some((c) => c.email === email && c.phoneNumber === phoneNumber);
     if (!alreadyExists && (email || phoneNumber)) {
         const newSecondary = yield prisma.contact.create({

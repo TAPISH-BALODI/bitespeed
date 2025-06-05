@@ -10,8 +10,7 @@ router.post('/', async (req:any, res:any) => {
   if (!email && !phoneNumber) {
     return res.status(400).json({ error: 'email or phoneNumber required' });
   }
-
-  // STEP 1: Fetch contacts matching email OR phoneNumber
+ 
   const matchedContacts = await prisma.contact.findMany({
     where: {
       OR: [
@@ -21,8 +20,9 @@ router.post('/', async (req:any, res:any) => {
     },
     orderBy: { createdAt: 'asc' }
   });
-console.log(matchedContacts,"MATCHINg");
-  // STEP 2: No match? Create new primary
+console.log(matchedContacts,"MATCHING CONTACTS");
+
+  //Create new primary
   if (matchedContacts.length === 0) {
     const newContact = await prisma.contact.create({
       data: {
@@ -41,7 +41,7 @@ console.log(matchedContacts,"MATCHINg");
     });
   }
 
-  // STEP 3: Gather all related contacts (by linkedId or id)
+  // STEP 3: Gather all related contacts-by linkedId or id
   const relatedIds = new Set<number>();
 
   for (const contact of matchedContacts) {
@@ -62,7 +62,7 @@ console.log(matchedContacts,"MATCHINg");
     orderBy: { createdAt: 'asc' },
   });
 
-  // STEP 4: Determine primary contact
+  // Find primary contact
   const primary = allContacts.find((c: { linkPrecedence: string; }) => c.linkPrecedence === 'primary')!;
   const secondaryContacts = allContacts.filter((c: { id: any; }) => c.id !== primary.id);
 
@@ -70,7 +70,7 @@ console.log(matchedContacts,"MATCHINg");
   const phoneNumbers = Array.from(new Set(allContacts.map((c: { phoneNumber: any; }) => c.phoneNumber).filter(Boolean)));
   const secondaryContactIds = secondaryContacts.map((c: { id: any; }) => c.id);
 
-  // STEP 5: Check if this email/phone combo exists, if not, create new secondary
+  // Check if this email/phone combo exists, if not, create new secondary
   const alreadyExists = allContacts.some(
     (c: { email: any; phoneNumber: any; }) => c.email === email && c.phoneNumber === phoneNumber
   );
